@@ -4,7 +4,7 @@ import subprocess
 import sys
 import threading
 import traceback
-from core.config import BASE_DIR, MAIN_PY, CSV_DIR
+from core.config import BACKEND_DIR, MAIN_PY, CSV_DIR
 from core.state import state
 from services.parser import parse_csv_stats
 from api.websockets import broadcast_log, broadcast_status
@@ -61,13 +61,13 @@ def run_locust_thread(domain: str, loop, user_id: str = None):
 
     try:
         logger.info(f"[DIAG][THREAD] Lancement subprocess.Popen pour {domain}")
-        logger.info(f"[DIAG][THREAD] CWD = {str(BASE_DIR)}")
+        logger.info(f"[DIAG][THREAD] CWD = {str(BACKEND_DIR)}")
         logger.info(f"[DIAG][THREAD] MAIN_PY = {str(MAIN_PY)}, exists={MAIN_PY.exists()}")
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            cwd=str(BASE_DIR),
+            cwd=str(BACKEND_DIR),
             text=True,
             encoding="utf-8",
             errors="replace",
