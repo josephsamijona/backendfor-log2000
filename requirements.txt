@@ -1,0 +1,20 @@
+# ── Production ─────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+websockets
+reportlab
+python-multipart
+locust
+requests
+beautifulsoup4
+motor
+passlib[bcrypt]
+bcrypt==3.2.2
+PyJWT
+pydantic-settings
+python-dotenv
+
+# ── Development / Testing ──────────────────────────────────────────────────
+pytest
+pytest-asyncio
+httpx

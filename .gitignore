@@ -1,0 +1,29 @@
+# ── Environment variables (secrets) ────────────────────────────────────────
+.env
+.env.local
+# Allow example file (safe to commit)
+!.env.example
+
+# ── Python cache ───────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ── Virtual environments ───────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Build / packaging ──────────────────────────────────────────────────────
+*.egg-info/
+dist/
+build/
+
+# ── Generated reports ──────────────────────────────────────────────────────
+rapport_*.csv
+
+# ── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

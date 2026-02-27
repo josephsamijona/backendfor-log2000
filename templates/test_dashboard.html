@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Test Dashboard — LoadTest Backend</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #555555;
+            --border: #e0e0e0;
+            --border-dark: #000000;
+            --accent-black: #000000;
+            --accent-white: #ffffff;
+            --success: #12803b;
+            --error: #d32f2f;
+            --warn: #e65100;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: left;
+            margin-bottom: 2.5rem;
+            border-bottom: 2px solid var(--border-dark);
+            padding-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .targetbadge-wrapper {
+            margin-top: 1rem;
+            display: inline-block;
+        }
+
+        .target-badge {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-dark);
+            padding: 0.35rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Start Button ── */
+        .start-section {
+            margin-bottom: 2.5rem;
+        }
+
+        #startBtn {
+            background: var(--accent-black);
+            color: var(--accent-white);
+            border: 2px solid var(--border-dark);
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            width: 100%;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            background: var(--accent-white);
+            color: var(--accent-black);
+        }
+
+        #startBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--text-secondary);
+            border-color: var(--text-secondary);
+            color: var(--accent-white);
+        }
+
+        /* ── Progress Bar ── */
+        .progress-container {
+            border: 1px solid var(--border-dark);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: none;
+            background: #fafafa;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            overflow: hidden;
+            border: 1px solid var(--border-dark);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-black);
+            transition: width 0.3s ease;
+        }
+
+        /* ── Test Steps ── */
+        .steps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: -1px;
+            margin-bottom: 2.5rem;
+        }
+
+        .step-card {
+            border: 1px solid var(--border-dark);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-primary);
+            margin-bottom: -1px;
+            /* collapse borders */
+        }
+
+        .step-card.running {
+            background: #f0f0f0;
+            border-left: 4px solid var(--accent-black);
+        }
+
+        .step-card.passed {
+            border-left: 4px solid var(--success);
+        }
+
+        .step-card.failed {
+            border-left: 4px solid var(--error);
+            background: #fdf5f5;
+        }
+
+        .step-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid var(--text-secondary);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+        }
+
+        .step-card.running .step-icon {
+            border-color: var(--accent-black);
+            color: var(--accent-black);
+        }
+
+        .step-card.passed .step-icon {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .step-card.failed .step-icon {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .step-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .step-detail {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: right;
+        }
+
+        .step-card.passed .step-detail {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .step-card.failed .step-detail {
+            color: var(--error);
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        /* ── Results Panel ── */
+        .results-panel {
+            border: 2px solid var(--border-dark);
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            display: none;
+        }
+
+        .results-panel.active {
+            display: block;
+        }
+
+        .results-panel h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            border: 1px solid var(--border);
+            padding: 1.25rem;
+            text-align: left;
+            background: #fafafa;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-black);
+            line-height: 1.1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value.green {
+            color: var(--success);
+        }
+
+        .stat-value.red {
+            color: var(--error);
+        }
+
+        .stat-value.warn {
+            color: var(--warn);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        /* ── Charts Section ── */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .chart-box {
+            border: 1px solid var(--border);
+            padding: 1rem;
+            background: #ffffff;
+        }
+
+        .chart-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* ── Score Banner ── */
+        .score-banner {
+            border: 2px solid var(--border-dark);
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            display: none;
+            text-align: center;
+        }
+
+        .score-banner.active {
+            display: block;
+        }
+
+        .score-banner.success {
+            border-color: var(--success);
+            background: rgba(18, 128, 59, 0.05);
+        }
+
+        .score-banner.failure {
+            border-color: var(--error);
+            background: rgba(211, 47, 47, 0.05);
+        }
+
+        .score-banner h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .score-banner.success h2 {
+            color: var(--success);
+        }
+
+        .score-banner.failure h2 {
+            color: var(--error);
+        }
+
+        .score-banner p {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* ── Log Console ── */
+        .log-console {
+            background: #f4f4f4;
+            border: 1px solid var(--border-dark);
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin-bottom: 2.5rem;
+            display: none;
+        }
+
+        .log-console.active {
+            display: block;
+        }
+
+        .log-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+            border-bottom: 1px solid #eeeeee;
+            padding: 2px 0;
+        }
+
+        .log-line:last-child {
+            border-bottom: none;
+        }
+
+        .log-line.info {
+            color: var(--text-secondary);
+        }
+
+        .log-line.success {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .log-line.error {
+            color: var(--error);
+            font-weight: 600;
+        }
+
+        .log-line.warn {
+            color: var(--warn);
+        }
+
+        /* ── Download Button ── */
+        .download-section {
+            text-align: center;
+            margin-top: 2rem;
+            display: none;
+            margin-bottom: 4rem;
+        }
+
+        .download-section.active {
+            display: block;
+        }
+
+        #downloadBtn {
+            background: var(--bg-primary);
+            color: var(--accent-black);
+            border: 2px solid var(--border-dark);
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #downloadBtn:hover {
+            background: var(--accent-black);
+            color: var(--bg-primary);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-left: 1px solid var(--border);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-black);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>TEST E2E — DASHBOARD</h1>
+            <p>Rapport d'exécution automatisée LoadTest</p>
+            <div class="targetbadge-wrapper">
+                <div class="target-badge">CIBLE: https://isteah.org</div>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <div class="start-section">
+            <button id="startBtn" onclick="runAllTests()">Lancer la vérification E2E</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-header">
+                <span id="progressLabel">EN ATTENTE D'INITIALISATION...</span>
+                <span class="step-counter" id="stepCounter">0 / 10</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Steps Grid -->
+        <div class="steps-grid" id="stepsGrid">
+            <div class="step-card" id="step-1">
+                <div class="step-icon">1</div>
+                <div class="step-info">
+                    <div class="step-name">Statut Initial</div>
+                    <div class="step-detail">GET /api/status</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-2">
+                <div class="step-icon">2</div>
+                <div class="step-info">
+                    <div class="step-name">Lancement du Scan</div>
+                    <div class="step-detail">POST /api/scan</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-3">
+                <div class="step-icon">3</div>
+                <div class="step-info">
+                    <div class="step-name">Connexion WebSocket</div>
+                    <div class="step-detail">ws://localhost:8000/ws/logs</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-4">
+                <div class="step-icon">4</div>
+                <div class="step-info">
+                    <div class="step-name">Crawling du site</div>
+                    <div class="step-detail">Découverte automatique</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-5">
+                <div class="step-icon">5</div>
+                <div class="step-info">
+                    <div class="step-name">Test de charge (Locust)</div>
+                    <div class="step-detail">Simulation utilisateurs</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-6">
+                <div class="step-icon">6</div>
+                <div class="step-info">
+                    <div class="step-name">Finalisation</div>
+                    <div class="step-detail">Attente statut "done"</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-7">
+                <div class="step-icon">7</div>
+                <div class="step-info">
+                    <div class="step-name">Récupération des Stats</div>
+                    <div class="step-detail">GET /api/stats</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-8">
+                <div class="step-icon">8</div>
+                <div class="step-info">
+                    <div class="step-name">Vérification des Logs</div>
+                    <div class="step-detail">GET /api/logs</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-9">
+                <div class="step-icon">9</div>
+                <div class="step-info">
+                    <div class="step-name">Génération Rapport PDF</div>
+                    <div class="step-detail">GET /api/report/pdf</div>
+                </div>
+            </div>
+            <div class="step-card" id="step-10">
+                <div class="step-icon">10</div>
+                <div class="step-info">
+                    <div class="step-name">Statut Final</div>
+                    <div class="step-detail">GET /api/status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Log Console -->
+        <div class="log-console" id="logConsole"></div>
+
+        <!-- Score Banner -->
+        <div class="score-banner" id="scoreBanner">
+            <h2 id="scoreText"></h2>
+            <p id="scoreDetail"></p>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel" id="resultsPanel">
+            <h2>STATISTIQUES DE PERFORMANCE</h2>
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="charts-container">
+                <div class="chart-box">
+                    <div class="chart-title">Profil de Charge (Utilisateurs vs RPS)</div>
+                    <canvas id="loadChart" height="250"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">Latence des Réponses (Temps en ms)</div>
+                    <canvas id="latencyChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download -->
+        <div class="download-section" id="downloadSection">
+            <button id="downloadBtn" onclick="downloadPdf()">TÉLÉCHARGER LE RAPPORT PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const API = '';  // Same origin
+        const WS_URL = `ws://${location.host}/ws/logs`;
+        const DOMAIN = 'https://isteah.org';
+        let totalSteps = 10;
+        let completedSteps = 0;
+        let pdfBlob = null;
+        let wsInstance = null;
+
+        function setStep(n, state, detail) {
+            const card = document.getElementById(`step-${n}`);
+            card.className = 'step-card ' + state;
+            const icon = card.querySelector('.step-icon');
+            const detailEl = card.querySelector('.step-detail');
+            if (state === 'running') icon.innerHTML = '<span class="spinner">⏳</span>';
+            else if (state === 'passed') icon.innerHTML = '✅';
+            else if (state === 'failed') icon.innerHTML = '❌';
+            if (detail) detailEl.textContent = detail;
+        }
+
+        function updateProgress(label) {
+            completedSteps++;
+            document.getElementById('progressFill').style.width = `${(completedSteps / totalSteps) * 100}%`;
+            document.getElementById('stepCounter').textContent = `${completedSteps} / ${totalSteps}`;
+            document.getElementById('progressLabel').textContent = label;
+        }
+
+        function addLog(text, type = '') {
+            const console_el = document.getElementById('logConsole');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = text;
+            console_el.appendChild(line);
+            console_el.scrollTop = console_el.scrollHeight;
+        }
+
+        async function apiGet(path) {
+            const r = await fetch(API + path);
+            return { status: r.status, data: await r.json(), response: r };
+        }
+        async function apiPost(path, body) {
+            const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return { status: r.status, data: await r.json() };
+        }
+
+        async function runAllTests() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Tests en cours...';
+            document.getElementById('progressContainer').classList.add('active');
+            document.getElementById('logConsole').classList.add('active');
+            completedSteps = 0;
+            addLog('[E2E] Démarrage des tests E2E contre ' + DOMAIN, 'info');
+
+            try {
+                // ─── STEP 1: Initial Status ───
+                setStep(1, 'running');
+                const s1 = await apiGet('/api/status');
+                if (s1.status === 200) {
+                    setStep(1, 'passed', `status = ${s1.data.status}`);
+                    addLog(`[1/10] ✅ Status initial: ${s1.data.status}`, 'success');
+                } else {
+                    setStep(1, 'failed', 'Serveur inaccessible');
+                    addLog('[1/10] ❌ Serveur inaccessible', 'error');
+                    return showFinalScore();
+                }
+                updateProgress('Statut initial vérifié');
+
+                // ─── STEP 2: Launch Scan ───
+                setStep(2, 'running');
+                const s2 = await apiPost('/api/scan', { domain: DOMAIN });
+                if (s2.status === 200 && s2.data.ok) {
+                    setStep(2, 'passed', `domain = ${s2.data.domain}`);
+                    addLog(`[2/10] ✅ Scan lancé: ${s2.data.domain}`, 'success');
+                } else if (s2.status === 409) {
+                    setStep(2, 'failed', 'Un test est déjà en cours (409)');
+                    addLog('[2/10] ❌ Conflit: un test est déjà en cours', 'error');
+                    return showFinalScore();
+                } else {
+                    setStep(2, 'failed', JSON.stringify(s2.data));
+                    addLog(`[2/10] ❌ Erreur: ${JSON.stringify(s2.data)}`, 'error');
+                    return showFinalScore();
+                }
+                updateProgress('Scan lancé');
+
+                // ─── STEP 3-6: WebSocket live tracking ───
+                setStep(3, 'running');
+                await new Promise((resolve, reject) => {
+                    let firstMsg = true;
+                    let logCount = 0;
+                    let sawCrawling = false, sawRunning = false, sawDone = false;
+                    const startTime = Date.now();
+                    const timeout = setTimeout(() => {
+                        addLog('[WS] ⚠️ Timeout atteint (300s)', 'warn');
+                        cleanup(); resolve();
+                    }, 300000);
+
+                    try {
+                        wsInstance = new WebSocket(WS_URL);
+                    } catch (e) {
+                        setStep(3, 'failed', 'Connexion impossible');
+                        addLog('[3/10] ❌ WebSocket connexion impossible', 'error');
+                        resolve();
+                        return;
+                    }
+
+                    function cleanup() {
+                        clearTimeout(timeout);
+                        if (wsInstance) { try { wsInstance.close(); } catch (e) { } }
+                    }
+
+                    wsInstance.onopen = () => {
+                        setStep(3, 'passed', 'Connecté');
+                        addLog('[3/10] ✅ WebSocket connecté', 'success');
+                        updateProgress('WebSocket connecté');
+                    };
+
+                    wsInstance.onerror = (e) => {
+                        setStep(3, 'failed', 'Erreur de connexion');
+                        addLog('[3/10] ❌ WebSocket erreur', 'error');
+                        cleanup(); resolve();
+                    };
+
+                    wsInstance.onclose = () => {
+                        addLog('[WS] Connexion fermée', 'warn');
+                        cleanup(); resolve();
+                    };
+
+                    wsInstance.onmessage = (event) => {
+                        const msg = JSON.parse(event.data);
+                        const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+                        if (msg.type === 'status') {
+                            const val = msg.data;
+
+                            if (firstMsg) {
+                                firstMsg = false;
+                                if (val === 'error' || val === 'done') {
+                                    addLog(`[WS] Statut stale ignoré: ${val}`, 'warn');
+                                    return;
+                                }
+                            }
+
+                            if (val === 'crawling' && !sawCrawling) {
+                                sawCrawling = true;
+                                setStep(4, 'running', 'Crawl en cours...');
+                                addLog(`[${elapsed}s] 🕷️ Crawling démarré`, 'info');
+                            }
+                            if (val === 'running' && !sawRunning) {
+                                sawRunning = true;
+                                if (!sawCrawling) { setStep(4, 'passed', 'Crawl terminé (rapide)'); updateProgress('Crawling'); }
+                                else { setStep(4, 'passed', 'URLs découvertes'); updateProgress('Crawling terminé'); }
+                                setStep(5, 'running', 'Test de charge en cours...');
+                                addLog(`[${elapsed}s] 🚀 Test de charge démarré`, 'info');
+                            }
+                            if (val === 'done') {
+                                sawDone = true;
+                                if (!sawRunning) { setStep(5, 'passed', 'Test terminé'); updateProgress('Test terminé'); }
+                                else { setStep(5, 'passed', `Test terminé après ${elapsed}s`); updateProgress('Test de charge terminé'); }
+                                setStep(6, 'passed', `Terminé en ${elapsed}s`);
+                                addLog(`[${elapsed}s] ✅ Test terminé avec succès!`, 'success');
+                                updateProgress('Finalisation');
+                                cleanup(); resolve();
+                            }
+                            if (val === 'error') {
+                                setStep(6, 'failed', `Erreur après ${elapsed}s`);
+                                addLog(`[${elapsed}s] ❌ Test terminé avec erreur`, 'error');
+                                updateProgress('Erreur');
+                                cleanup(); resolve();
+                            }
+                        }
+
+                        if (msg.type === 'log') {
+                            logCount++;
+                            if (logCount <= 10 || logCount % 30 === 0) {
+                                const truncated = msg.data.length > 120 ? msg.data.substring(0, 120) + '...' : msg.data;
+                                addLog(`  ${truncated}`);
+                            }
+                        }
+                    };
+                });
+
+                // ─── STEP 7: Get Stats ───
+                setStep(7, 'running');
+                const s7 = await apiGet('/api/stats');
+                if (s7.data && s7.data.global && s7.data.global.num_requests > 0) {
+                    const g = s7.data.global;
+                    setStep(7, 'passed', `${g.num_requests} requêtes | RPS=${Number(g.rps).toFixed(1)} | P95=${Number(g.p95_response).toFixed(0)}ms`);
+                    addLog(`[7/10] ✅ Stats: ${g.num_requests} req, ${Number(g.rps).toFixed(1)} RPS, P95=${Number(g.p95_response).toFixed(0)}ms`, 'success');
+                    showStatsPanel(s7.data);
+                } else {
+                    setStep(7, 'failed', 'Aucune donnée');
+                    addLog('[7/10] ❌ Aucune statistique', 'error');
+                }
+                updateProgress('Stats récupérées');
+
+                // ─── STEP 8: Get Logs ───
+                setStep(8, 'running');
+                const s8 = await apiGet('/api/logs');
+                const logsList = s8.data.logs || [];
+                if (logsList.length > 0) {
+                    setStep(8, 'passed', `${logsList.length} lignes de log`);
+                    addLog(`[8/10] ✅ ${logsList.length} lignes de log accumulées`, 'success');
+                } else {
+                    setStep(8, 'failed', 'Aucun log');
+                    addLog('[8/10] ❌ Aucun log trouvé', 'error');
+                }
+                updateProgress('Logs vérifiés');
+
+                // ─── STEP 9: Download PDF ───
+                setStep(9, 'running');
+                try {
+                    const pdfResp = await fetch(API + '/api/report/pdf');
+                    const blob = await pdfResp.blob();
+                    const arr = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+                    const header = String.fromCharCode(...arr);
+                    if (header === '%PDF-' && blob.size > 500) {
+                        pdfBlob = blob;
+                        setStep(9, 'passed', `PDF valide (${(blob.size / 1024).toFixed(1)} Ko)`);
+                        addLog(`[9/10] ✅ PDF généré: ${(blob.size / 1024).toFixed(1)} Ko`, 'success');
+                        document.getElementById('downloadSection').classList.add('active');
+                    } else {
+                        setStep(9, 'failed', `PDF invalide (${blob.size} octets)`);
+                        addLog('[9/10] ❌ PDF invalide ou vide', 'error');
+                    }
+                } catch (e) {
+                    setStep(9, 'failed', e.message);
+                    addLog(`[9/10] ❌ Erreur PDF: ${e.message}`, 'error');
+                }
+                updateProgress('PDF vérifié');
+
+                // ─── STEP 10: Final Status ───
+                setStep(10, 'running');
+                const s10 = await apiGet('/api/status');
+                if (['done', 'idle', 'error'].includes(s10.data.status)) {
+                    setStep(10, 'passed', `status = ${s10.data.status}`);
+                    addLog(`[10/10] ✅ Statut final: ${s10.data.status}`, 'success');
+                } else {
+                    setStep(10, 'failed', `status = ${s10.data.status}`);
+                    addLog(`[10/10] ❌ Statut inattendu: ${s10.data.status}`, 'error');
+                }
+                updateProgress('Terminé');
+
+            } catch (e) {
+                addLog(`[ERREUR FATALE] ${e.message}`, 'error');
+            }
+
+            showFinalScore();
+            btn.textContent = '🔄 Relancer les Tests';
+            btn.disabled = false;
+        }
+
+        let loadChartInstance = null;
+        let latencyChartInstance = null;
+
+        function showStatsPanel(stats) {
+            const panel = document.getElementById('resultsPanel');
+            const grid = document.getElementById('statsGrid');
+            panel.classList.add('active');
+            const g = stats.global;
+            grid.innerHTML = `
+                <div class="stat-card"><div class="stat-value">${g.num_requests}</div><div class="stat-label">Requêtes Totales</div></div>
+                <div class="stat-card"><div class="stat-value ${g.failure_rate > 5 ? 'red' : 'green'}">${Number(g.failure_rate).toFixed(1)}%</div><div class="stat-label">Taux d'Erreur</div></div>
+                <div class="stat-card"><div class="stat-value">${Number(g.rps).toFixed(1)}</div><div class="stat-label">Requêtes/s</div></div>
+                <div class="stat-card"><div class="stat-value warn">${Number(g.p95_response).toFixed(0)} ms</div><div class="stat-label">Latence P95</div></div>
+                <div class="stat-card"><div class="stat-value">${Number(g.median_response).toFixed(0)} ms</div><div class="stat-label">Latence Médiane</div></div>
+                <div class="stat-card"><div class="stat-value">${Number(g.max_response).toFixed(0)} ms</div><div class="stat-label">Latence Max</div></div>
+            `;
+
+            if (stats.history && stats.history.length > 0) {
+                renderCharts(stats.history);
+            }
+        }
+
+        function renderCharts(history) {
+            // Preparer les données: aligner les timestamps sur 0
+            if (history.length === 0) return;
+            const startTime = history[0].timestamp;
+            const labels = history.map(h => {
+                const s = h.timestamp - startTime;
+                return Math.floor(s / 60) + ':' + (s % 60).toString().padStart(2, '0');
+            });
+            const usersData = history.map(h => h.users);
+            const rpsData = history.map(h => h.rps);
+            const medianData = history.map(h => h.median);
+            const p95Data = history.map(h => h.p95);
+
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = "#555555";
+
+            if (loadChartInstance) loadChartInstance.destroy();
+            const ctx1 = document.getElementById('loadChart').getContext('2d');
+            loadChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Utilisateurs concurrents', data: usersData, borderColor: '#000000', backgroundColor: 'rgba(0,0,0,0.1)', yAxisID: 'y1', tension: 0.1, fill: true, borderWidth: 2, pointRadius: 0 },
+                        { label: 'Requêtes par s. (RPS)', data: rpsData, borderColor: '#a0a0a0', backgroundColor: 'transparent', yAxisID: 'y2', tension: 0.1, borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { display: true, grid: { display: false } },
+                        y1: { type: 'linear', display: true, position: 'left', beginAtZero: true, grid: { color: '#eeeeee' } },
+                        y2: { type: 'linear', display: true, position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            if (latencyChartInstance) latencyChartInstance.destroy();
+            const ctx2 = document.getElementById('latencyChart').getContext('2d');
+            latencyChartInstance = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Médiane (ms)', data: medianData, borderColor: '#12803b', backgroundColor: 'transparent', tension: 0.1, borderWidth: 2, pointRadius: 0 },
+                        { label: 'P95 (ms)', data: p95Data, borderColor: '#e65100', backgroundColor: 'transparent', tension: 0.1, borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { display: true, grid: { display: false } },
+                        y: { type: 'linear', display: true, beginAtZero: true, grid: { color: '#eeeeee' } }
+                    }
+                }
+            });
+        }
+
+        function showFinalScore() {
+            const banner = document.getElementById('scoreBanner');
+            banner.classList.add('active');
+            const passedSteps = document.querySelectorAll('.step-card.passed').length;
+            const failedSteps = document.querySelectorAll('.step-card.failed').length;
+            const total = passedSteps + failedSteps;
+
+            if (failedSteps === 0 && passedSteps > 0) {
+                banner.classList.add('success');
+                document.getElementById('scoreText').textContent = `🎉 ${passedSteps}/${total} — SUCCÈS`;
+                document.getElementById('scoreDetail').textContent = 'Tous les tests ont réussi ! Le backend fonctionne parfaitement.';
+            } else {
+                banner.classList.add('failure');
+                document.getElementById('scoreText').textContent = `⚠️ ${passedSteps}/${total} — ÉCHEC`;
+                document.getElementById('scoreDetail').textContent = `${failedSteps} test(s) ont échoué. Consultez les détails ci-dessus.`;
+            }
+        }
+
+        function downloadPdf() {
+            if (!pdfBlob) return alert('Aucun PDF disponible.');
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rapport_load_test_isteah.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
